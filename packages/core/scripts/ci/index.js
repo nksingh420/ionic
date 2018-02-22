@@ -2,33 +2,84 @@
 
 const fs = require('fs');
 const path = require('path');
+const glob = require('glob');
+
+const config = require('./config');
+const startTime = new Date().getTime();
 
 async function run() {
-  console.log('running')
-  console.log(fromDir('../../src','.md'));
+  vlog('Starting CI task')
+  if(!preCheck()) {
+    console.error(
+      `CI Precheck Failure.
+Check configs, and that the ionic-team/ionic-docs repo is cloned`
+    );
+    return;
+  } else {
+    vlog('Precheck complete')
+  }
+  let files = await promisedGlob(`${config.PATH_SRC}/**/readme.md`);
+  // let files = fileTypeFinder(path.join(__dirname, config.PATH_SRC),'.md');
+  copyFiles(files, `${config.PATH_DOCS}/src/docs-content`).then(()=> {
+
+    const endTime = new Date().getTime();
+    console.log(`CI Scripts Complete in ${endTime - startTime}ms`)
+  });
 }
 
-function fromDir(startPath,filter){
-  let found = [];
-  if (!fs.existsSync(startPath)){
-      console.log("no dir ",startPath);
-      return;
-  }
+function promisedGlob(pattern, options) {
+  return new Promise((resolve, reject) => {
+    glob(pattern, options, (err, files) => {
+      if(err) {
+        return reject(err);
+      }
+      resolve(files);
+    })
+  })
 
-  var files=fs.readdirSync(startPath);
-  for(var i=0;i<files.length;i++){
-    var filename=path.join(startPath,files[i]);
-    var stat = fs.lstatSync(filename);
-    if (stat.isDirectory()){
-      found = found.concat(fromDir(filename,filter)); //recurse
+}
+
+function preCheck() {
+  return validateNodeVersion(process.version) &&
+    fs.existsSync(path.join(__dirname, config.PATH_SRC)) &&
+    fs.existsSync(path.join(__dirname, config.PATH_DOCS));
+}
+
+async function copyFiles(files, dest) {
+  vlog(`Copying ${files.length} files`)
+  for(var i = 0; i < files.length; i++) {
+    let pathArray = files[i].split('/');
+    let name = `${pathArray[pathArray.length - 2]}.md`;
+    vlog('Copying file: ', name);
+    await copyFile(files[i], path.join(`${dest}/${name}`));
+  }
+}
+
+function copyFile(source, target) {
+  var rd = fs.createReadStream(source);
+  var wr = fs.createWriteStream(target);
+  return new Promise(function(resolve, reject) {
+    rd.on('error', reject);
+    wr.on('error', reject);
+    wr.on('finish', resolve);
+    rd.pipe(wr);
+  }).catch(function(error) {
+    rd.destroy();
+    wr.end();
+    throw error;
+  });
+}
+
+// logging function that checks to see if VERBOSE mode is on
+function vlog(message, data) {
+  if(config.VERBOSE) {
+    if(data) {
+      console.log(message, data)
+    } else {
+      console.log(message)
     }
-    else if (filename.indexOf(filter) === filename.length - filter.length) {
-      // console.log('-- found: ',filename);
-      found.push(filename);
-    };
-  };
-  return found;
-};
+  }
+}
 
 function parseSemver(str) {
   return /(\d+)\.(\d+)\.(\d+)/
@@ -45,11 +96,11 @@ function validateNodeVersion(version) {
       'Running the CI scripts requires Node version 7.6 or higher.'
     );
   }
+  return true;
 }
 
 // Invoke run() only if executed directly i.e. `node ./scripts/e2e`
 if (require.main === module) {
-  validateNodeVersion(process.version);
   run()
     .then(() => {})
     .catch(err => {
