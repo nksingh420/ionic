@@ -23,7 +23,7 @@ Check configs, and that the ionic-team/ionic-docs repo is cloned`
   copyFiles(files, `${config.PATH_DOCS}/src/docs-content`).then(()=> {
 
     const endTime = new Date().getTime();
-    console.log(`CI Scripts Complete in ${endTime - startTime}ms`)
+    console.log(`Docs parsed and copied in ${endTime - startTime}ms`)
   });
 }
 

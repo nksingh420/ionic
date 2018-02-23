@@ -8,7 +8,8 @@ The purpose of these scripts are to copy the markdown files generated during dev
 
 
 Standard run: `npm run ci`
-Dry run (don't push): 'npm run ci --dry`
+Dry run (don't push): `npm run ci-dry`
+Clone only, don't copy docs or push: `npm run ci-prep`
 
 ## TODO
 
