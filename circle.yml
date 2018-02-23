@@ -44,7 +44,7 @@ jobs:
           name: Update docs
           command: |
             if [ "${CIRCLE_BRANCH}" == "core-ci" ]; then
-              npm --prefix packages/core/ run validate
+              npm --prefix packages/core/ run ci
             else
               echo "We are on ${CIRCLE_BRANCH} branch, not going to update docs."
             fi
