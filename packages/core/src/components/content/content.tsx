@@ -1,6 +1,5 @@
 import { Component, Element, Listen, Method, Prop } from '@stencil/core';
 import { Config, DomController } from '../../index';
-import { getPageElement } from '../../utils/helpers';
 
 @Component({
   tag: 'ion-content',
@@ -124,4 +123,28 @@ export class Content {
       <slot name='fixed'></slot>
     ];
   }
+}
+
+export function getPageElement(el: HTMLElement) {
+  const tabs = el.closest('ion-tabs');
+  if (tabs) {
+    return tabs;
+  }
+  const page = el.closest('ion-page,.ion-page,page-inner');
+  if (page) {
+    return page;
+  }
+  return getParentElement(el);
+}
+
+export function getParentElement(el: any) {
+  if (el.parentElement ) {
+    // normal element with a parent element
+    return el.parentElement;
+  }
+  if (el.parentNode && el.parentNode.host) {
+    // shadow dom's document fragment
+    return el.parentNode.host;
+  }
+  return null;
 }

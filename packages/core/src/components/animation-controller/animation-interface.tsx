@@ -28,7 +28,8 @@ export interface Animation {
   afterStyles(styles: { [property: string]: any; }): Animation;
   afterClearStyles(propertyNames: string[]): Animation;
   play(opts?: PlayOptions): void;
-  syncPlay(): void;
+  playAsync(opts?: PlayOptions): Promise<Animation>;
+  playSync(): void;
   reverse(shouldReverse?: boolean): Animation;
   stop(stepValue?: number): void;
   progressStart(): void;

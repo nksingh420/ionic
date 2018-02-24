@@ -1,15 +1,6 @@
 const engine = (window as any).TapticEngine;
 
 /**
- * Check to see if the Haptic Plugin is available
- * @return {boolean} Returns true or false if the plugin is available
- *
- */
-export function hapticAvailable() {
-  return !!engine;
-}
-
-/**
  * Trigger a selection changed haptic event. Good for one-time events
  * (not for gestures)
  */

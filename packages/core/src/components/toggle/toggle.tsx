@@ -90,7 +90,6 @@ export class Toggle implements CheckboxInput {
       'gestureName': 'toggle',
       'passive': false,
       'gesturePriority': 30,
-      'type': 'pan',
       'direction': 'x',
       'threshold': 0,
       'attachTo': 'parent'

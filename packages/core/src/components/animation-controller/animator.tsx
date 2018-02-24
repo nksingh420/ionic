@@ -2,8 +2,6 @@ import { AnimationOptions, EffectProperty, EffectState, PlayOptions } from './an
 import { CSS_PROP, CSS_VALUE_REGEX, DURATION_MIN, TRANSFORM_PROPS, TRANSITION_END_FALLBACK_PADDING_MS } from './constants';
 import { transitionEnd } from './transition-end';
 
-
-
 export class Animator {
 
   private _afterAddClasses: string[];
@@ -23,8 +21,8 @@ export class Animator {
   private _hasTweenEffect: boolean;
   private _isAsync: boolean;
   private _isReverse: boolean;
-  private _onFinishCallbacks: Function[] | undefined;
-  private _onFinishOneTimeCallbacks: Function[] | undefined;
+  private _onFinishCallbacks: FinishCallback[] | undefined;
+  private _onFinishOneTimeCallbacks: FinishCallback[] | undefined;
   private _readCallbacks: Function[];
   private _reversedEasingName: string|undefined;
   private _timerId: any;
@@ -355,7 +353,7 @@ export class Animator {
     });
   }
 
-  syncPlay() {
+  playSync() {
     // If the animation was already invalidated (it did finish), do nothing
     if (!this._destroyed) {
       const opts = { duration: 0 };
@@ -364,6 +362,13 @@ export class Animator {
       this._playInit(opts);
       this._playDomInspect(opts);
     }
+  }
+
+  playAsync(opts?: PlayOptions): Promise<Animator> {
+    return new Promise<Animator>(resolve => {
+      this.onFinish(resolve, {oneTimeCallback: true, clearExistingCallacks: true});
+      this.play(opts);
+    });
   }
 
   /**
@@ -1100,7 +1105,7 @@ export class Animator {
   /**
    * Add a callback to fire when the animation has finished.
    */
-  onFinish(callback: (animation?: any) => void, opts?: {oneTimeCallback?: boolean, clearExistingCallacks?: boolean}): Animator {
+  onFinish(callback: FinishCallback, opts?: FinishOpts): Animator {
     if (opts && opts.clearExistingCallacks) {
       this._onFinishCallbacks = this._onFinishOneTimeCallbacks = undefined;
     }
@@ -1225,4 +1230,10 @@ export class Animator {
   create() {
     return new Animator();
   }
+}
+
+export type FinishCallback = (animation?: any) => void;
+export interface FinishOpts {
+  oneTimeCallback?: boolean;
+  clearExistingCallacks?: boolean
 }

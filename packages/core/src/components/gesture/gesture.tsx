@@ -1,9 +1,7 @@
-import { Component, Event, EventEmitter, EventListenerEnable, Listen, Prop, Watch } from '@stencil/core';
-import { ElementRef, assert, now, updateDetail } from '../../utils/helpers';
-import { DomController, BlockerDelegate, GestureDelegate, BlockerConfig } from '../../index';
-import { BLOCK_ALL } from '../gesture-controller/gesture-controller-utils';
+import { Component, EventListenerEnable, Listen, Prop, Watch, Method } from '@stencil/core';
+import { now, updateDetail } from '../../utils/helpers';
+import { DomController, BlockerDelegate, GestureDelegate } from '../../index';
 import { PanRecognizer } from './recognizers';
-
 
 @Component({
   tag: 'ion-gesture'
@@ -16,7 +14,6 @@ export class Gesture {
   private lastTouch = 0;
   private pan: PanRecognizer;
   private hasCapturedPan = false;
-  private hasPress = false;
   private hasStartedPan = false;
   private hasFiredStart = true;
   private isMoveQueued = false;
@@ -27,9 +24,7 @@ export class Gesture {
   @Prop({ context: 'enableListener' }) enableListener: EventListenerEnable;
 
   @Prop() disabled = false;
-  @Prop() attachTo: ElementRef = 'child';
-  @Prop() autoBlockAll = false;
-  @Prop() block: string = null;
+  @Prop() attachTo = 'child';
   @Prop() disableScroll = false;
   @Prop() direction = 'x';
   @Prop() gestureName = '';
@@ -37,40 +32,23 @@ export class Gesture {
   @Prop() passive = true;
   @Prop() maxAngle = 40;
   @Prop() threshold = 10;
-  @Prop() type = 'pan';
 
   @Prop() canStart: GestureCallback;
-  @Prop() onWillStart: (_: GestureDetail) => Promise<void>;
+  @Prop() onWillStart: (detail: GestureDetail) => Promise<void>;
   @Prop() onStart: GestureCallback;
   @Prop() onMove: GestureCallback;
   @Prop() onEnd: GestureCallback;
-  @Prop() onPress: GestureCallback;
   @Prop() notCaptured: GestureCallback;
 
-  /**
-   * Emitted when the gesture moves.
-   */
-  @Event() ionGestureMove: EventEmitter;
-
-  /**
-   * Emitted when the gesture starts.
-   */
-  @Event() ionGestureStart: EventEmitter;
-
-  /**
-   * Emitted when the gesture ends.
-   */
-  @Event() ionGestureEnd: EventEmitter;
-
-  /**
-   * Emitted when the gesture is not captured.
-   */
-  @Event() ionGestureNotCaptured: EventEmitter;
-
-  /**
-   * Emitted when press is detected.
-   */
-  @Event() ionPress: EventEmitter;
+  @Watch('disabled')
+  protected disabledChanged() {
+    const disabled = this.disabled;
+    this.enableListener(this, 'touchstart', !disabled, this.attachTo, this.passive);
+    this.enableListener(this, 'mousedown', !disabled, this.attachTo, this.passive);
+    if (disabled) {
+      this.stop();
+    }
+  }
 
   componentWillLoad() {
     return this.gestureCtrl.create({
@@ -81,49 +59,23 @@ export class Gesture {
   }
 
   componentDidLoad() {
-    // in this case, we already know the GestureController and Gesture are already
-    // apart of the same bundle, so it's safe to load it this way
-    // only create one instance of GestureController, and reuse the same one later
-
-    const types = this.type.replace(/\s/g, '').toLowerCase().split(',');
-    if (types.indexOf('pan') > -1) {
-      this.pan = new PanRecognizer(this.direction, this.threshold, this.maxAngle);
-    }
-    this.hasPress = (types.indexOf('press') > -1);
-
-    this.disabledChanged(this.disabled);
-
-    if (this.autoBlockAll) {
-      this.setBlocker(BLOCK_ALL).then(b => b.block());
-    }
+    this.pan = new PanRecognizer(this.direction, this.threshold, this.maxAngle);
+    this.disabledChanged();
   }
 
-  @Watch('disabled')
-  protected disabledChanged(isDisabled: boolean) {
-    if (this.pan || this.hasPress) {
-      this.enableListener(this, 'touchstart', !isDisabled, this.attachTo, this.passive);
-      this.enableListener(this, 'mousedown', !isDisabled, this.attachTo, this.passive);
-      if (isDisabled) {
-        this.abortGesture();
-      }
-    }
-  }
-
-  @Watch('block')
-  protected blockChanged(block: string) {
-    this.setBlocker({ disable: block.split(',')});
-  }
-
-  private setBlocker(config: BlockerConfig) {
+  componentDidUnload() {
     if (this.blocker) {
       this.blocker.destroy();
+      this.blocker = null;
     }
-    if (config) {
-      return this.gestureCtrl.componentOnReady()
-        .then(ctrl => ctrl.createBlocker(config))
-        .then(blocker => this.blocker = blocker);
-    }
-    return Promise.resolve(null);
+    this.gesture && this.gesture.destroy();
+    this.gesture = this.detail = this.attachTo = this.detail.event = null;
+  }
+
+  @Method()
+  stop() {
+    this.reset();
+    this.enable(false);
   }
 
   // DOWN *************************
@@ -140,12 +92,11 @@ export class Gesture {
     }
   }
 
-
   @Listen('mousedown', { passive: true, enabled: false })
   onMouseDown(ev: MouseEvent) {
     const timeStamp = now(ev);
 
-    if (this.lastTouch === 0 || (this.lastTouch + MOUSE_WAIT < timeStamp)) {
+    if (this.lastTouch + MOUSE_WAIT < timeStamp) {
       if (this.pointerDown(ev, timeStamp)) {
         this.enableMouse(true);
         this.enableTouch(false);
@@ -159,6 +110,7 @@ export class Gesture {
     if (!this.gesture || this.hasStartedPan || !this.hasFiredStart) {
       return false;
     }
+    const positions = this.positions;
     const detail = this.detail;
 
     updateDetail(ev, detail);
@@ -167,13 +119,7 @@ export class Gesture {
     detail.startTimeStamp = detail.timeStamp = timeStamp;
     detail.velocityX = detail.velocityY = detail.deltaX = detail.deltaY = 0;
     detail.event = ev;
-    this.positions.length = 0;
-
-    assert(this.hasFiredStart, 'fired start must be false');
-    assert(!this.hasStartedPan, 'pan can be started at this point');
-    assert(!this.hasCapturedPan, 'pan can be started at this point');
-    assert(!this.isMoveQueued, 'some move is still queued');
-    assert(this.positions.length === 0, 'positions must be emprty');
+    positions.length = 0;
 
     // Check if gesture can start
     if (this.canStart && this.canStart(detail) === false) {
@@ -187,17 +133,14 @@ export class Gesture {
       return false;
     }
 
-    this.positions.push(detail.currentX, detail.currentY, timeStamp);
-    if (this.pan) {
-      this.hasStartedPan = true;
-      if (this.threshold === 0) {
-        return this.tryToCapturePan();
-      }
-      this.pan.start(detail.startX, detail.startY);
+    positions.push(detail.currentX, detail.currentY, timeStamp);
+    this.hasStartedPan = true;
+    if (this.threshold === 0) {
+      return this.tryToCapturePan();
     }
+    this.pan.start(detail.startX, detail.startY);
     return true;
   }
-
 
   // MOVE *************************
 
@@ -211,15 +154,13 @@ export class Gesture {
   @Listen('document:mousemove', { passive: true, enabled: false })
   onMoveMove(ev: TouchEvent) {
     const timeStamp = now(ev);
-    if (this.lastTouch === 0 || (this.lastTouch + MOUSE_WAIT < timeStamp)) {
+    if (this.lastTouch + MOUSE_WAIT < timeStamp) {
       this.detail.timeStamp = timeStamp;
       this.pointerMove(ev);
     }
   }
 
   private pointerMove(ev: UIEvent) {
-    assert(!!this.pan, 'pan must be non null');
-
     // fast path, if gesture is currently captured
     // do minimun job to get user-land even dispatched
     if (this.hasCapturedPan) {
@@ -234,12 +175,12 @@ export class Gesture {
     // gesture is currently being detected
     const detail = this.detail;
     this.calcGestureData(ev);
-    if (this.pan.detect(detail.currentX, detail.currentY)) {
-      if (this.pan.isGesture()) {
-        if (!this.tryToCapturePan()) {
-          this.abortGesture();
-        }
-      }
+    if (
+      this.pan.detect(detail.currentX, detail.currentY) &&
+      this.pan.isGesture() &&
+      !this.tryToCapturePan()
+    ) {
+      this.abortGesture();
     }
   }
 
@@ -252,9 +193,10 @@ export class Gesture {
     const detail = this.detail;
     this.isMoveQueued = false;
     if (this.onMove) {
-      this.onMove(detail);
-    } else {
-      this.ionGestureMove.emit(detail);
+      const result = this.onMove(detail);
+      if (result === false) {
+        this.stop();
+      }
     }
   }
 
@@ -314,7 +256,7 @@ export class Gesture {
     detail.startTimeStamp = detail.timeStamp;
 
     if (this.onWillStart) {
-      this.onWillStart(this.detail).then(this.fireOnStart.bind(this));
+      this.onWillStart(detail).then(this.fireOnStart.bind(this));
     } else {
       this.fireOnStart();
     }
@@ -322,18 +264,14 @@ export class Gesture {
   }
 
   private fireOnStart() {
-    assert(!this.hasFiredStart, 'has fired must be false');
     if (this.onStart) {
       this.onStart(this.detail);
-    } else {
-      this.ionGestureStart.emit(this.detail);
     }
     this.hasFiredStart = true;
   }
 
   private abortGesture() {
-    this.reset();
-    this.enable(false);
+    this.stop();
     this.notCaptured && this.notCaptured(this.detail);
   }
 
@@ -360,13 +298,12 @@ export class Gesture {
   onMouseUp(ev: TouchEvent) {
     const timeStamp = now(ev);
 
-    if (this.lastTouch === 0 || (this.lastTouch + MOUSE_WAIT < timeStamp)) {
+    if (this.lastTouch + MOUSE_WAIT < timeStamp) {
       this.detail.timeStamp = timeStamp;
       this.pointerUp(ev);
       this.enableMouse(false);
     }
   }
-
 
   private pointerUp(ev: UIEvent) {
     const hasCaptured = this.hasCapturedPan;
@@ -381,88 +318,40 @@ export class Gesture {
 
     // Try to capture press
     if (hasCaptured) {
-      detail.type = 'pan';
       if (this.onEnd) {
         this.onEnd(detail);
-      } else {
-        this.ionGestureEnd.emit(detail);
       }
-      return;
-    }
-
-    // Try to capture press
-    if (this.hasPress && this.detectPress()) {
       return;
     }
 
     // Not captured any event
     if (this.notCaptured) {
       this.notCaptured(detail);
-    } else {
-      this.ionGestureNotCaptured.emit(detail);
     }
-  }
-
-  private detectPress(): boolean {
-    const detail = this.detail;
-    const vecX = detail.deltaX;
-    const vecY = detail.deltaY;
-    const dis = vecX * vecX + vecY * vecY;
-    if (dis < 100) {
-      detail.type = 'press';
-
-      if (this.onPress) {
-        this.onPress(detail);
-      } else {
-        this.ionPress.emit(detail);
-      }
-      return true;
-    }
-    return false;
   }
 
   // ENABLE LISTENERS *************************
 
   private enableMouse(shouldEnable: boolean) {
-    if (this.pan) {
-      this.enableListener(this, 'document:mousemove', shouldEnable, undefined, this.passive);
-    }
+    this.enableListener(this, 'document:mousemove', shouldEnable, undefined, this.passive);
     this.enableListener(this, 'document:mouseup', shouldEnable, undefined, this.passive);
   }
 
-
   private enableTouch(shouldEnable: boolean) {
-    if (this.pan) {
-      this.enableListener(this, 'touchmove', shouldEnable, this.attachTo, this.passive);
-    }
+    this.enableListener(this, 'touchmove', shouldEnable, this.attachTo, this.passive);
     this.enableListener(this, 'touchcancel', shouldEnable, this.attachTo, this.passive);
     this.enableListener(this, 'touchend', shouldEnable, this.attachTo, this.passive);
   }
-
 
   private enable(shouldEnable: boolean) {
     this.enableMouse(shouldEnable);
     this.enableTouch(shouldEnable);
   }
-
-
-  componentDidUnload() {
-    if (this.blocker) {
-      this.blocker.destroy();
-      this.blocker = null;
-    }
-    this.gesture && this.gesture.destroy();
-    this.gesture = this.pan = this.detail = this.detail.event = null;
-  }
-
 }
-
 
 const MOUSE_WAIT = 2500;
 
-
 export interface GestureDetail {
-  type?: string;
   event?: UIEvent;
   startX?: number;
   startY?: number;

@@ -1,5 +1,4 @@
 import { AnimationBuilder, Animation } from "..";
-import { playAnimationAsync } from "./helpers";
 
 let lastId = 1;
 
@@ -74,11 +73,21 @@ export function overlayAnimation(
     if (!animate) {
       animation.duration(0);
     }
-    return playAnimationAsync(animation);
+    return animation.playAsync();
   }).then((animation) => {
     animation.destroy();
     overlay.animation = null;
   });
+}
+
+export function autoFocus(containerEl: HTMLElement): HTMLElement {
+  const focusableEls = containerEl.querySelectorAll('a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex="0"]');
+  if (focusableEls.length > 0) {
+    const el = focusableEls[0] as HTMLInputElement;
+    el.focus();
+    return el;
+  }
+  return null;
 }
 
 export interface OverlayInterface {

@@ -9,7 +9,7 @@ import { DomController } from '../../global/dom-controller';
     md: 'ripple-effect.md.scss'
   },
   host: {
-    theme: 'ripple'
+    theme: 'ripple-effect'
   }
 })
 export class RippleEffect {
@@ -43,7 +43,7 @@ export class RippleEffect {
   @Listen('mousedown', {passive: true, enabled: false})
   mouseDown(ev: MouseEvent) {
     const timeStamp = now(ev);
-    if (this.lastClick < (timeStamp - 1000)) {
+    if (this.lastClick < (timeStamp - 2500)) {
       this.addRipple(ev.pageX, ev.pageY);
     }
   }
@@ -72,7 +72,7 @@ export class RippleEffect {
     });
     this.dom.write(() => {
       const div = document.createElement('div');
-      div.classList.add('ripple-effect');
+      div.classList.add('ripple');
       const style = div.style;
       const duration = Math.max(800 * Math.sqrt(size / 350) + 0.5, 260);
       style.top = y + 'px';

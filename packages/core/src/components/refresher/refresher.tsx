@@ -102,7 +102,6 @@ export class Refresher {
       'onEnd': this.onEnd.bind(this),
       'gestureName': 'refresher',
       'gesturePriority': 10,
-      'type': 'pan',
       'passive': false,
       'direction': 'y',
       'threshold': 0,

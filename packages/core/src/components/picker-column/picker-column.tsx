@@ -25,8 +25,6 @@ export class PickerColumnCmp {
   private velocity: number;
   private y = 0;
 
-  private activeBlock: string;
-
   @Element() private el: HTMLElement;
 
   @Prop({ context: 'dom' }) dom: DomController;
@@ -54,8 +52,6 @@ export class PickerColumnCmp {
     this.optHeight = (colEl.firstElementChild ? colEl.firstElementChild.clientHeight : 0);
 
     // TODO block goback-swipe and menu-swipe
-    // this.activeBlock = 'goback-swipe menu-swipe';
-
     this.refresh();
   }
 
@@ -434,12 +430,10 @@ export class PickerColumnCmp {
         'onEnd': this.onDragEnd.bind(this),
         'gestureName': 'picker-swipe',
         'gesturePriority': 10,
-        'type': 'pan',
         'direction': 'y',
         'maxAngle': 20,
         'threshold': 10,
-        'attachTo': 'parent',
-        'block': this.activeBlock
+        'attachTo': 'parent'
       }}></ion-gesture>,
       <div class='picker-opts' style={{maxWidth: col.optionsWidth}}>
         {options.map((o, index) =>

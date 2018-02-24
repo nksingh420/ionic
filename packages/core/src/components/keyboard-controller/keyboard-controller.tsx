@@ -1,6 +1,6 @@
 import { Component, Event, EventEmitter, Prop} from '@stencil/core';
 import { Config } from '../..';
-import { focusOutActiveElement, getDocument, getWindow, hasFocusedTextInput } from '../../utils/helpers';
+import { focusOutActiveElement, hasFocusedTextInput } from '../../utils/helpers';
 import { KEY_TAB } from './keys';
 
 let v2KeyboardWillShowHandler: () => void = null;
@@ -75,11 +75,11 @@ export function onCloseImpl(keyboardController: KeyboardController, callback: Fu
 }
 
 export function componentDidLoadImpl(keyboardController: KeyboardController) {
-  focusOutline(getDocument(), keyboardController.config.get('focusOutline'));
+  focusOutline(document, keyboardController.config.get('focusOutline'));
   if (keyboardController.config.getBoolean('keyboardResizes', false)) {
-    listenV2(getWindow(), keyboardController);
+    listenV2(window, keyboardController);
   } else {
-    listenV1(getWindow(), keyboardController);
+    listenV1(window, keyboardController);
   }
 }
 

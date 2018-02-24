@@ -14,7 +14,6 @@ import { Side, assert, checkEdgeSide, isRightSide } from '../../utils/helpers';
 })
 export class Menu {
 
-  private gestureBlocker: string;
   private animation: Animation|undefined;
   private isPane = false;
   private _isOpen = false;
@@ -248,19 +247,13 @@ export class Menu {
   }
 
   private startAnimation(shouldOpen: boolean, animated: boolean): Promise<Animation> {
-    let done;
-    const promise = new Promise<Animation>(resolve => done = resolve);
-    const ani = this.animation
-      .onFinish(done, {oneTimeCallback: true, clearExistingCallacks: true })
-      .reverse(!shouldOpen);
-
+    const ani = this.animation.reverse(!shouldOpen);
     if (animated) {
-      ani.play();
+      return ani.playAsync();
     } else {
-      ani.syncPlay();
+      ani.playSync();
+      return Promise.resolve(ani);
     }
-
-    return promise;
   }
 
   private canSwipe(): boolean {
@@ -379,9 +372,6 @@ export class Menu {
     this.enableListener(this, 'body:click', isOpen);
 
     if (isOpen) {
-      // disable swipe to go back gesture
-      this.gestureBlocker = GESTURE_BLOCKER;
-
       // add css class
       this.contentEl.classList.add(MENU_CONTENT_OPEN);
 
@@ -389,9 +379,6 @@ export class Menu {
       this.ionOpen.emit();
 
     } else {
-      // enable swipe to go back gesture
-      this.gestureBlocker = null;
-
       // remove css classes
       this.el.classList.remove(SHOW_MENU);
       this.contentEl.classList.remove(MENU_CONTENT_OPEN);
@@ -462,12 +449,10 @@ export class Menu {
         'disabled': !this.isActive() || !this.swipeEnabled,
         'gestureName': 'menu-swipe',
         'gesturePriority': 10,
-        'type': 'pan',
         'direction': 'x',
         'threshold': 10,
         'attachTo': 'window',
-        'disableScroll': true,
-        'block': this.gestureBlocker
+        'disableScroll': true
       }}/>
     ]);
   }
@@ -480,7 +465,7 @@ function computeDelta(deltaX: number, isOpen: boolean, isRightSide: boolean): nu
 const SHOW_MENU = 'show-menu';
 const SHOW_BACKDROP = 'show-backdrop';
 const MENU_CONTENT_OPEN = 'menu-content-open';
-const GESTURE_BLOCKER = 'goback-swipe';
+// const GESTURE_BLOCKER = 'goback-swipe';
 
 export interface MenuChangeEvent {
   target: HTMLIonMenuElement;

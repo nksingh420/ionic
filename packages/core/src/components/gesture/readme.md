@@ -9,16 +9,6 @@
 
 #### attachTo
 
-
-
-
-#### autoBlockAll
-
-boolean
-
-
-#### block
-
 string
 
 
@@ -72,11 +62,6 @@ number
 
 
 
-#### onPress
-
-
-
-
 #### onStart
 
 
@@ -97,24 +82,9 @@ boolean
 number
 
 
-#### type
-
-string
-
-
 ## Attributes
 
 #### attach-to
-
-
-
-
-#### auto-block-all
-
-boolean
-
-
-#### block
 
 string
 
@@ -169,11 +139,6 @@ number
 
 
 
-#### on-press
-
-
-
-
 #### on-start
 
 
@@ -194,36 +159,9 @@ boolean
 number
 
 
-#### type
+## Methods
 
-string
-
-
-## Events
-
-#### ionGestureEnd
-
-Emitted when the gesture ends.
-
-
-#### ionGestureMove
-
-Emitted when the gesture moves.
-
-
-#### ionGestureNotCaptured
-
-Emitted when the gesture is not captured.
-
-
-#### ionGestureStart
-
-Emitted when the gesture starts.
-
-
-#### ionPress
-
-Emitted when press is detected.
+#### stop()
 
 
 

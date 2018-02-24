@@ -13,7 +13,7 @@ ion-ripple-effect {
   contain: strict;
 }
 
-.ripple-effect {
+ion-ripple-effect .ripple {
   @include border-radius(50%);
   position: absolute;
 
