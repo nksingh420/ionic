@@ -236,8 +236,10 @@ export class Menu {
       return Promise.resolve();
     }
     // Destroy existing animation
-    this.animation && this.animation.destroy();
-    this.animation = null;
+    if (this.animation) {
+      this.animation.destroy();
+      this.animation = null;
+    }
     this.width = width;
 
     // Create new animation

@@ -80,6 +80,11 @@ export function overlayAnimation(
   });
 }
 
+export function getAnimationBuilder() {
+  return this.enterAnimation || this.config.get('popoverEnter', this.mode === 'ios' ? iosEnterAnimation : mdEnterAnimation);
+
+}
+
 export function autoFocus(containerEl: HTMLElement): HTMLElement {
   const focusableEls = containerEl.querySelectorAll('a[href], area[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex="0"]');
   if (focusableEls.length > 0) {

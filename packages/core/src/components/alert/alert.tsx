@@ -128,10 +128,6 @@ export class Alert implements OverlayInterface {
     this.ionAlertDidLoad.emit();
   }
 
-  componentDidEnter() {
-    this.ionAlertDidPresent.emit();
-  }
-
   componentDidUnload() {
     this.ionAlertDidUnload.emit();
   }
@@ -151,8 +147,6 @@ export class Alert implements OverlayInterface {
     }
     this.presented = true;
     this.ionAlertWillPresent.emit();
-
-    this.el.style.zIndex = `${20000 + this.overlayId}`;
 
     // get the user's animation fn if one was provided
     const animationBuilder = this.enterAnimation || this.config.get('alertEnter', this.mode === 'ios' ? iosEnterAnimation : mdEnterAnimation);
@@ -335,6 +329,9 @@ export class Alert implements OverlayInterface {
 
     return {
       role: 'alertdialog',
+      style: {
+        zIndex: 20000 + this.overlayId,
+      },
       class: {
         ...themedClasses,
         ...getClassMap(this.cssClass)
