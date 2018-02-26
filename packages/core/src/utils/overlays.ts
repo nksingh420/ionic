@@ -1,4 +1,6 @@
-import { AnimationBuilder, Animation } from "..";
+import { AnimationBuilder, Animation, AnimationOptions, Config } from "..";
+import { EventEmitter } from "@stencil/core";
+import { domControllerAsync } from "./helpers";
 
 let lastId = 1;
 
@@ -74,15 +76,58 @@ export function overlayAnimation(
       animation.duration(0);
     }
     return animation.playAsync();
-  }).then((animation) => {
+  }).then(animation => {
     animation.destroy();
     overlay.animation = null;
   });
 }
 
-export function getAnimationBuilder() {
-  return this.enterAnimation || this.config.get('popoverEnter', this.mode === 'ios' ? iosEnterAnimation : mdEnterAnimation);
+export function presentOverlay(
+  overlay: OverlayInterface,
+  name: string,
+  iosEnterAnimation: AnimationBuilder,
+  mdEnterAnimation: AnimationBuilder,
+  opts: AnimationOptions
+) {
+  if(overlay.presented) {
+    return Promise.reject('overlay already presented');
+  }
+  overlay.presented = true;
+  overlay.willPresent.emit();
 
+  // get the user's animation fn if one was provided
+  const animationBuilder = (overlay.enterAnimation)
+    ? overlay.enterAnimation
+    : overlay.config.get(name, overlay.mode === 'ios' ? iosEnterAnimation : mdEnterAnimation);
+
+  return overlayAnimation(overlay, animationBuilder, overlay.willAnimate, overlay.el, opts).then(() => {
+    overlay.didPresent.emit();
+  });
+}
+
+export function dismiss2Overlay(
+  overlay: OverlayInterface,
+  data: any,
+  role: string,
+  iosLeaveAnimation: AnimationBuilder,
+  mdLeaveAnimation: AnimationBuilder,
+  opts: AnimationOptions
+) {
+  if(!overlay.presented) {
+    return Promise.reject('overlay is not presented');
+  }
+  overlay.presented = false;
+
+  overlay.willDismiss.emit({data, role});
+
+  const animationBuilder = overlay.leaveAnimation || overlay.config.get('actionSheetLeave', overlay.mode === 'ios' ? iosLeaveAnimation : mdLeaveAnimation);
+  return overlayAnimation(overlay, animationBuilder, overlay.willAnimate, overlay.el, opts).then(() => {
+    overlay.willDismiss.emit({data, role});
+
+    return domControllerAsync(this.dom.write, () => {
+      this.el.parentNode.removeChild(this.el);
+    });
+  });
 }
 
 export function autoFocus(containerEl: HTMLElement): HTMLElement {
@@ -96,9 +141,22 @@ export function autoFocus(containerEl: HTMLElement): HTMLElement {
 }
 
 export interface OverlayInterface {
+  mode: string;
+  el: HTMLElement,
+  willAnimate: boolean;
+  config: Config;
   overlayId: number;
+  presented: boolean;
   animation: Animation;
   animationCtrl: HTMLIonAnimationControllerElement;
+
+  enterAnimation: AnimationBuilder;
+  leaveAnimation: AnimationBuilder;
+
+  didPresent: EventEmitter;
+  willPresent: EventEmitter;
+  willDismiss: EventEmitter;
+  didDismiss: EventEmitter;
 
   present(): Promise<void>;
   dismiss(data?: any, role?: string): Promise<void>;

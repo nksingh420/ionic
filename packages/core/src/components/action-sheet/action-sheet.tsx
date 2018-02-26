@@ -3,7 +3,7 @@ import { Animation, AnimationBuilder, Config, DomController, OverlayDismissEvent
 
 import { domControllerAsync } from '../../utils/helpers';
 import { createThemedClasses, getClassMap } from '../../utils/theme';
-import { OverlayInterface, BACKDROP, overlayAnimation } from '../../utils/overlays';
+import { OverlayInterface, BACKDROP, overlayAnimation, presentOverlay } from '../../utils/overlays';
 
 import iosEnterAnimation from './animations/ios.enter';
 import iosLeaveAnimation from './animations/ios.leave';
@@ -23,13 +23,12 @@ import mdLeaveAnimation from './animations/md.leave';
 })
 export class ActionSheet implements OverlayInterface {
 
-  private presented = false;
-
+  presented = false;
   mode: string;
   color: string;
   animation: Animation;
 
-  @Element() private el: HTMLElement;
+  @Element() el: HTMLElement;
 
   @Prop({ connect: 'ion-animation-controller' }) animationCtrl: HTMLIonAnimationControllerElement;
   @Prop({ context: 'config' }) config: Config;
@@ -85,32 +84,32 @@ export class ActionSheet implements OverlayInterface {
   /**
    * Emitted after the alert has loaded.
    */
-  @Event() ionActionSheetDidLoad: EventEmitter<ActionSheetEventDetail>;
+  @Event() ionActionSheetDidLoad: EventEmitter;
 
   /**
    * Emitted after the alert has presented.
    */
-  @Event() ionActionSheetDidPresent: EventEmitter<ActionSheetEventDetail>;
+  @Event({eventName: 'ionActionSheetDidPresent'}) didPresent: EventEmitter;
 
   /**
    * Emitted before the alert has presented.
    */
-  @Event() ionActionSheetWillPresent: EventEmitter<ActionSheetEventDetail>;
+  @Event({eventName: 'ionActionSheetWillPresent'}) willPresent: EventEmitter;
 
   /**
    * Emitted before the alert has dismissed.
    */
-  @Event() ionActionSheetWillDismiss: EventEmitter<ActionSheetDismissEventDetail>;
+  @Event({eventName: 'ionActionSheetWillDismiss'}) willDismiss: EventEmitter;
 
   /**
    * Emitted after the alert has dismissed.
    */
-  @Event() ionActionSheetDidDismiss: EventEmitter<ActionSheetDismissEventDetail>;
+  @Event({eventName: 'ionActionSheetDidDismiss'}) didDismiss: EventEmitter;
 
   /**
    * Emitted after the alert has unloaded.
    */
-  @Event() ionActionSheetDidUnload: EventEmitter<ActionSheetEventDetail>;
+  @Event() ionActionSheetDidUnload: EventEmitter;
 
 
   componentDidLoad() {
@@ -139,20 +138,7 @@ export class ActionSheet implements OverlayInterface {
    */
   @Method()
   present(): Promise<void> {
-    if(this.presented) {
-      return Promise.reject('overlay already presented');
-    }
-    this.presented = true;
-
-    this.ionActionSheetWillPresent.emit();
-
-    // get the user's animation fn if one was provided
-    const animationBuilder = this.enterAnimation || this.config.get('actionSheetEnter', this.mode === 'ios' ? iosEnterAnimation : mdEnterAnimation);
-
-    // build the animation and kick it off
-    return this.playAnimation(animationBuilder).then(() => {
-      this.ionActionSheetDidPresent.emit();
-    });
+    return presentOverlay(this, 'actionSheetEnter', iosEnterAnimation, mdEnterAnimation, undefined);
   }
 
   /**
@@ -294,19 +280,6 @@ export interface ActionSheetButton {
   icon?: string;
   cssClass?: string;
   handler?: () => boolean | void;
-}
-
-export interface ActionSheetEvent extends CustomEvent {
-  target: HTMLIonActionSheetElement;
-  detail: ActionSheetEventDetail;
-}
-
-export interface ActionSheetEventDetail {
-
-}
-
-export interface ActionSheetDismissEventDetail extends OverlayDismissEventDetail {
-  // keep this just for the sake of static types and potential future extensions
 }
 
 export interface ActionSheetDismissEvent extends OverlayDismissEvent {
