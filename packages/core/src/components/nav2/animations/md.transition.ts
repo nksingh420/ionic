@@ -1,19 +1,17 @@
-import { AnimationOptions, Transition, ViewController } from '../../../index';
-import { canNavGoBack } from '../nav-utils';
+import { Animation, AnimationOptions } from '../../../index';
 import { isDef } from '../../../utils/helpers';
+import { ViewController } from '../view-controller';
 
 const TRANSLATEY = 'translateY';
 const OFF_BOTTOM = '40px';
 const CENTER = '0px';
-const SHOW_BACK_BTN_CSS = 'show-back-button';
+// const SHOW_BACK_BTN_CSS = 'show-back-button';
 
-export function buildMdTransition(rootTransition: Transition, enteringView: ViewController, leavingView: ViewController, opts: AnimationOptions): Promise<Transition> {
-
-  rootTransition.enteringView = enteringView;
-  rootTransition.leavingView = leavingView;
+export default function mdTransitionAnimation(Animation: Animation, enteringView: ViewController, leavingView: ViewController, opts: AnimationOptions): Promise<Animation> {
 
   const ionPageElement = getIonPageElement(enteringView.element);
 
+  const rootTransition = new Animation();
   rootTransition.addElement(ionPageElement);
   rootTransition.beforeRemoveClass('hide-page');
 
@@ -35,18 +33,18 @@ export function buildMdTransition(rootTransition: Transition, enteringView: View
     const enteringToolbarEle = ionPageElement.querySelector('ion-toolbar');
     if (enteringToolbarEle) {
 
-      const enteringToolBar = rootTransition.create();
+      const enteringToolBar = new Animation();
       enteringToolBar.addElement(enteringToolbarEle);
       rootTransition.add(enteringToolBar);
 
-      const enteringBackButton = rootTransition.create();
+      const enteringBackButton = new Animation();
       enteringBackButton.addElement(enteringToolbarEle.querySelector('.back-button'));
       rootTransition.add(enteringBackButton);
-      if (canNavGoBack(enteringView.nav, enteringView)) {
-        enteringBackButton.beforeAddClass(SHOW_BACK_BTN_CSS);
-      } else {
-        enteringBackButton.beforeRemoveClass(SHOW_BACK_BTN_CSS);
-      }
+      // if (canNavGoBack(enteringView.nav, enteringView)) {
+      //   enteringBackButton.beforeAddClass(SHOW_BACK_BTN_CSS);
+      // } else {
+      //   enteringBackButton.beforeRemoveClass(SHOW_BACK_BTN_CSS);
+      // }
     }
   }
 
@@ -54,7 +52,7 @@ export function buildMdTransition(rootTransition: Transition, enteringView: View
   if (leavingView && backDirection) {
     // leaving content
     rootTransition.duration(opts.duration || 200).easing('cubic-bezier(0.47,0,0.745,0.715)');
-    const leavingPage = rootTransition.create();
+    const leavingPage = new Animation();
     leavingPage.addElement(getIonPageElement(leavingView.element));
     rootTransition.add(leavingPage.fromTo(TRANSLATEY, CENTER, OFF_BOTTOM).fromTo('opacity', 1, 0));
   }

@@ -1,7 +1,5 @@
 import { Component, Element, Event, EventEmitter, Listen, Method, Prop, State } from '@stencil/core';
-import { Config, NavEventDetail, NavOutlet } from '../../index';
-
-import { getIonApp } from '../../utils/helpers';
+import { Config, NavOutlet } from '../../index';
 
 
 @Component({
@@ -67,29 +65,33 @@ export class Tabs implements NavOutlet {
    * Emitted when the tab changes.
    */
   @Event() ionChange: EventEmitter;
-  @Event() ionNavChanged: EventEmitter<NavEventDetail>;
+  @Event() ionNavChanged: EventEmitter<any>;
 
   componentDidLoad() {
     this.loadConfig('tabsPlacement', 'bottom');
     this.loadConfig('tabsLayout', 'icon-top');
     this.loadConfig('tabsHighlight', true);
 
-    const promises: Promise<any>[] = [];
-    promises.push(this.initTabs());
-    promises.push(getIonApp());
-    return Promise.all(promises).then(([_, ionApp]) => {
-      if (ionApp) {
-        return (ionApp as HTMLIonAppElement).getExternalNavOccuring();
-      }
-      return false;
-    }).then((externalNavOccuring: boolean) => {
-      if (!externalNavOccuring) {
-        return this.initSelect();
-      }
-      return null;
-    }).then(() => {
-      this.initialized = true;
-    });
+    // const promises: Promise<any>[] = [];
+    // promises.push(this.initTabs());
+    // promises.push(getIonApp());
+    // return Promise.all(promises).then(([_, ionApp]) => {
+    //   if (ionApp) {
+    //     return (ionApp as HTMLIonAppElement).getExternalNavOccuring();
+    //   }
+    //   return false;
+    // }).then((externalNavOccuring: boolean) => {
+    //   if (!externalNavOccuring) {
+    //     return this.initSelect();
+    //   }
+    //   return null;
+    // }).then(() => {
+    //   this.initialized = true;
+    // });
+
+    return this.initTabs()
+      .then(() => this.initSelect())
+      .then(() => this.initialized = true );
   }
 
   componentDidUnload() {

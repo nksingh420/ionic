@@ -1,10 +1,13 @@
 import { Component, Element, Event, EventEmitter, Listen, Method, Prop } from '@stencil/core';
-import { Config, NavEvent, OverlayController, PublicNav, PublicViewController } from '../../index';
+import { Config, OverlayController } from '../../index';
 
 import { getOrAppendElement } from '../../utils/helpers';
 
 const rootNavs = new Map<number, HTMLIonNavElement>();
 let backButtonActions: BackButtonAction[] = [];
+
+export type PublicNav = any;
+export type PublicViewController = any;
 
 @Component({
   tag: 'ion-app',
@@ -34,50 +37,10 @@ export class App {
     this.deviceHacks = this.config.getBoolean('deviceHacks', false);
   }
 
-  /**
-   * Returns the promise set by an external navigation system
-   * This API is not meant for public usage and could
-   * change at any time
-   */
-  @Method()
-  getExternalNavPromise(): void | Promise<any> {
-    return this.externalNavPromise;
-  }
-
-  /**
-   * Updates the Promise set by an external navigation system
-   * This API is not meant for public usage and could
-   * change at any time
-   */
-  @Method()
-  setExternalNavPromise(value: null | Promise<any>): void {
-    this.externalNavPromise = value;
-  }
-
-  /**
-   * Returns whether an external navigation event is occuring
-   * This API is not meant for public usage and could
-   * change at any time
-   */
-  @Method()
-  getExternalNavOccuring(): boolean {
-    return this.externalNavOccuring;
-  }
-
-  /**
-   * Updates whether an external navigation event is occuring
-   * This API is not meant for public usage and could
-   * change at any time
-   */
-  @Method()
-  updateExternalNavOccuring(status: boolean) {
-    this.externalNavOccuring = status;
-  }
-
-  @Listen('body:navInit')
-  protected registerRootNav(event: NavEvent) {
-    rootNavs.set(event.target.getId(), event.target);
-  }
+  // @Listen('body:navInit')
+  // protected registerRootNav(event: NavEvent) {
+  //   rootNavs.set(event.target.getId(), event.target);
+  // }
 
   /**
    * Returns an array of top level Navs
@@ -98,6 +61,22 @@ export class App {
   isEnabled(): boolean {
     return true;
   }
+
+  @Method()
+  setEnabled(_isEnabled: boolean, _time?: number, _t2?: number) {
+    return;
+  }
+
+  @Method()
+  unregisterRootNav(_: any) {
+    return;
+  }
+
+
+  // @Method()
+  // registerRootNav(_: any) {
+  //   return;
+  // }
 
   @Method()
   getTopNavs(rootNavId = -1): PublicNav[] {
@@ -148,49 +127,39 @@ export class App {
     };
   }
 
-  @Listen('document:backbutton')
-  hardwareBackButtonPressed() {
-    // okay cool, we need to execute the user's custom method if they have one
-    const actionToExecute = backButtonActions.reduce((previous, current) => {
-      if (current.priority >= previous.priority) {
-        return current;
-      }
-      return previous;
-    });
-    actionToExecute && actionToExecute.fn && actionToExecute.fn();
-
-    // okay great, we've done the user action, now do the default actions
-    // check if menu exists and is open
-    return checkIfMenuIsOpen().then((done: boolean) => {
-      if (!done) {
-        // we need to check if there is an action-sheet, alert, loading, picker, popover or toast open
-        // if so, just return and don't do anything
-        // Why? I have no idea, but that is the existing behavior in Ionic 3
-        return checkIfNotModalOverlayIsOpen();
-      }
-      return done;
-    }).then((done: boolean) => {
-      if (!done) {
-        // if there's a modal open, close that instead
-        return closeModalIfOpen();
-      }
-      return done;
-    }).then((done: boolean) => {
-      // okay cool, it's time to pop a nav if possible
-      if (!done) {
-        return popEligibleView();
-      }
-      return done;
-    }).then((done: boolean) => {
-      if (!done) {
-        // okay, we didn't find a nav that we can pop, so we should just exit the app
-        // since each platform exits differently, just delegate it to the platform to
-        // figure out how to exit
-        return this.exitApp.emit();
-      }
-      return Promise.resolve();
-    });
-  }
+  // @Listen('document:backbutton')
+  // hardwareBackButtonPressed() {
+  //   // check if menu exists and is open
+  //   return checkIfMenuIsOpen().then((done: boolean) => {
+  //     if (!done) {
+  //       // we need to check if there is an action-sheet, alert, loading, picker, popover or toast open
+  //       // if so, just return and don't do anything
+  //       // Why? I have no idea, but that is the existing behavior in Ionic 3
+  //       return checkIfNotModalOverlayIsOpen();
+  //     }
+  //     return done;
+  //   }).then((done: boolean) => {
+  //     if (!done) {
+  //       // if there's a modal open, close that instead
+  //       return closeModalIfOpen();
+  //     }
+  //     return done;
+  //   }).then((done: boolean) => {
+  //     // okay cool, it's time to pop a nav if possible
+  //     if (!done) {
+  //       return popEligibleView();
+  //     }
+  //     return done;
+  //   }).then((done: boolean) => {
+  //     if (!done) {
+  //       // okay, we didn't find a nav that we can pop, so we should just exit the app
+  //       // since each platform exits differently, just delegate it to the platform to
+  //       // figure out how to exit
+  //       return this.exitApp.emit();
+  //     }
+  //     return Promise.resolve();
+  //   });
+  // }
 
   @Listen('document:paused')
   appResume(): null {
@@ -252,7 +221,7 @@ export function findTopNavs(nav: PublicNav): PublicNav[] {
   if (!childNavs || !childNavs.length) {
     containers.push(nav);
   } else {
-    childNavs.forEach(childNav => {
+    childNavs.forEach((childNav: any) => {
       const topNavs = findTopNavs(childNav);
       containers = containers.concat(topNavs);
     });
@@ -323,27 +292,27 @@ export function closeModalIfOpen(): Promise<boolean> {
   });
 }
 
-export function popEligibleView(): Promise<boolean> {
-  let navToPop: PublicNav = null;
-  let mostRecentVC: PublicViewController = null;
-  rootNavs.forEach(nav => {
-    const topNavs = getTopNavsImpl(nav.navId);
-    const poppableNavs = topNavs.map(topNav => getPoppableNav(topNav)).filter(nav => !!nav).filter(nav => !!nav.last());
-    poppableNavs.forEach(poppable => {
-      const topViewController = poppable.last();
-      if (!mostRecentVC || topViewController.timestamp >= mostRecentVC.timestamp) {
-        mostRecentVC = topViewController;
-        navToPop = poppable;
-      }
-    });
-  });
-  if (navToPop) {
-    return navToPop.pop().then(() => {
-      return true;
-    });
-  }
-  return Promise.resolve(false);
-}
+// export function popEligibleView(): Promise<boolean> {
+//   let navToPop: PublicNav = null;
+//   let mostRecentVC: PublicViewController = null;
+//   rootNavs.forEach(nav => {
+//     const topNavs = getTopNavsImpl(nav.navId);
+//     const poppableNavs = topNavs.map(topNav => getPoppableNav(topNav)).filter(nav => !!nav).filter(nav => !!nav.last());
+//     poppableNavs.forEach(poppable => {
+//       const topViewController = poppable.last();
+//       if (!mostRecentVC || topViewController.timestamp >= mostRecentVC.timestamp) {
+//         mostRecentVC = topViewController;
+//         navToPop = poppable;
+//       }
+//     });
+//   });
+//   if (navToPop) {
+//     return navToPop.pop().then(() => {
+//       return true;
+//     });
+//   }
+//   return Promise.resolve(false);
+// }
 
 export function getPoppableNav(nav: PublicNav): PublicNav {
   if (!nav) {

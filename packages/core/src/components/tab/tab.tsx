@@ -1,7 +1,7 @@
 import { Component, Element, Event, EventEmitter, Method, Prop, State, Watch } from '@stencil/core';
-
+// import { ensureExternalRounterController, getNavAsChildIfExists } from '../../utils/helpers';
 import { FrameworkDelegate } from '../..';
-import { asyncRaf, getIonApp, getNavAsChildIfExists } from '../../utils/helpers';
+import { asyncRaf } from '../../utils/helpers';
 
 
 @Component({
@@ -114,24 +114,26 @@ export class Tab {
 
   private showTab(): Promise<any|void> {
     this.active = true;
-    const nav = getNavAsChildIfExists(this.el);
-    if (!nav) {
-      return Promise.resolve();
-    }
-    // the tab's nav has been initialized externally
-    return getIonApp().then((ionApp) => {
-      const externalNavPromise = ionApp ? ionApp.getExternalNavPromise() : null;
-      if (externalNavPromise) {
-        return (externalNavPromise as any).then(() => {
-          ionApp.setExternalNavPromise(null);
-        });
-      }
+    // const nav = getNavAsChildIfExists(this.el);
+    // if (!nav) {
+    //   return Promise.resolve();
+    // }
+    return Promise.resolve();
 
-      // the tab's nav has not been initialized externally, so
-      // check if we need to initiailize it
-      return nav.componentOnReady()
-      .then(() => nav.activateFromTab(this.selected));
-    });
+    // // the tab's nav has been initialized externally
+    // return getIonApp().then((ionApp) => {
+    //   const externalNavPromise = ionApp ? ionApp.getExternalNavPromise() : null;
+    //   if (externalNavPromise) {
+    //     return (externalNavPromise as any).then(() => {
+    //       ionApp.setExternalNavPromise(null);
+    //     });
+    //   }
+
+    //   // the tab's nav has not been initialized externally, so
+    //   // check if we need to initiailize it
+    //   return nav.componentOnReady()
+    //   .then(() => nav.activateFromTab(this.selected));
+    // });
   }
 
   hostData() {

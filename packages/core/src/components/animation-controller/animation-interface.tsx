@@ -43,7 +43,7 @@ export interface Animation {
 
 
 export interface AnimationBuilder {
-(Animation: Animation, baseEl?: HTMLElement, opts?: any): Promise<Animation>;
+  (Animation: Animation, baseEl?: HTMLElement, opts?: any): Promise<Animation>;
 }
 
 
@@ -54,8 +54,10 @@ export interface AnimationOptions {
   direction?: string;
   isRTL?: boolean;
   ev?: any;
+  enteringEl: HTMLElement;
+  leavingEl: HTMLElement;
+  nav: any;
 }
-
 
 export interface PlayOptions {
   duration?: number;

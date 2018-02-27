@@ -12,20 +12,6 @@
 
 ## Methods
 
-#### getExternalNavOccuring()
-
-Returns whether an external navigation event is occuring
-This API is not meant for public usage and could
-change at any time
-
-
-#### getExternalNavPromise()
-
-Returns the promise set by an external navigation system
-This API is not meant for public usage and could
-change at any time
-
-
 #### getNavByIdOrName()
 
 
@@ -57,18 +43,13 @@ button is pressed. This method decides which of the registered back button
 actions has the highest priority and should be called.
 
 
-#### setExternalNavPromise()
-
-Updates the Promise set by an external navigation system
-This API is not meant for public usage and could
-change at any time
+#### setEnabled()
 
 
-#### updateExternalNavOccuring()
+#### setScrolling()
 
-Updates whether an external navigation event is occuring
-This API is not meant for public usage and could
-change at any time
+
+#### unregisterRootNav()
 
 
 
