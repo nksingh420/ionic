@@ -30,6 +30,7 @@ export class Transition {
     public leavingView: ViewController,
     private opts: any
   ) {}
+
   registerStart(trnsStart: Function) {
     this._trnsStart = trnsStart;
   }

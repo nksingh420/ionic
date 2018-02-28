@@ -1,3 +1,4 @@
+
 import { NavOptions, STATE_ATTACHED, STATE_DESTROYED, STATE_INITIALIZED, STATE_NEW } from './nav-util';
 import { NavControllerBase } from './nav';
 import { assert } from '../../utils/helpers';
@@ -79,44 +80,44 @@ export class ViewController {
   // data: any;
 
   /** @hidden */
-  instance: any;
-
-  /** @hidden */
   id: string;
 
   /** @hidden */
   isOverlay = false;
 
   element: HTMLElement;
-
   /** @hidden */
   // @Output() private _emitter: EventEmitter<any> = new EventEmitter();
 
-  constructor(public component?: any, public data?: any, rootCssClass: string = DEFAULT_CSS_CLASS) {
+  constructor(
+    public component: any,
+    public data?: any,
+    rootCssClass: string = DEFAULT_CSS_CLASS
+  ) {
+    // component could be anything, never use it directly
+    // it could be a string, a HTMLElement
     // passed in data could be NavParams, but all we care about is its data object
     // this.data = (data instanceof NavParams ? data.data : (isPresent(data) ? data : {}));
-
     this._cssClass = rootCssClass;
   }
 
   /**
    * @hidden
    */
-  // init(componentRef: ComponentRef<any>) {
-  //   assert(componentRef, 'componentRef can not be null');
-
-  //   this._cmp = componentRef;
-  //   this.instance = this.instance || componentRef.instance;
-  //   this._detached = false;
-  // }
+  init() {
+    if (this.element) {
+      return;
+    }
+    const component = this.component;
+    this.element = (typeof component === 'string')
+      ? document.createElement(component)
+      : component;
+  }
 
   _setNav(navCtrl: NavControllerBase) {
     this._nav = navCtrl;
   }
 
-  _setInstance(instance: any) {
-    this.instance = instance;
-  }
 
   // /**
   //  * @hidden
@@ -182,7 +183,7 @@ export class ViewController {
    * @hidden
    */
   getTransitionName(_direction: string): string {
-    return this._nav && this._nav.config.get('pageTransition');
+    return this._nav && this._nav.config && this._nav.config.get('pageTransition') || 'md';
   }
 
   // /**
@@ -218,7 +219,14 @@ export class ViewController {
    * @hidden
    */
   get name(): string {
-    return (this.element ? this.element.tagName : '');
+    const component = this.component;
+    if (typeof component === 'string') {
+      return component;
+    }
+    if (component.tagName) {
+      return component.tagName;
+    }
+    return this.element ? this.element.tagName : 'unknown';
   }
 
   /**
@@ -415,63 +423,58 @@ export class ViewController {
   _destroy() {
     assert(this._state !== STATE_DESTROYED, 'view state must be ATTACHED');
 
-    if (this.element) {
+    const element = this.element;
+    if (element) {
       // ensure the element is cleaned up for when the view pool reuses this element
       // ******** DOM WRITE ****************
       // TODO
       // const cmpEle = this._cmp.location.nativeElement as HTMLElement;
-      const cmpEle = this.element;
-      cmpEle.setAttribute('class', null);
-      cmpEle.setAttribute('style', null);
+      element.setAttribute('class', null);
+      element.setAttribute('style', null);
 
       // completely destroy this component. boom.
       // TODO
       // this._cmp.destroy();
     }
 
-    this._nav = this.instance = this._cntDir = this._leavingOpts = this._onDidDismiss = this._onWillDismiss = null;
+    this._nav = this._cntDir = this._leavingOpts = this._onDidDismiss = this._onWillDismiss = null;
     this._state = STATE_DESTROYED;
   }
 
   /**
    * @hidden
    */
-  _lifecycleTest(lifecycle: string): Promise<any> {
-    const instance = this.instance;
-    const methodName = 'ionViewCan' + lifecycle;
-    if (instance && instance[methodName]) {
-      try {
-        const result = instance[methodName]();
-        if (result instanceof Promise) {
-          return result;
-        } else {
-          // Any value but explitic false, should be true
-          return Promise.resolve(result !== false);
-        }
+  _lifecycleTest(_lifecycle: string): Promise<any> {
+    // const instance = this.instance;
+    // const methodName = 'ionViewCan' + lifecycle;
+    // if (instance && instance[methodName]) {
+    //   try {
+    //     const result = instance[methodName]();
+    //     if (result instanceof Promise) {
+    //       return result;
+    //     } else {
+    //       // Any value but explitic false, should be true
+    //       return Promise.resolve(result !== false);
+    //     }
 
-      } catch (e) {
-        return Promise.reject(`${this.name} ${methodName} error: ${e.message}`);
-      }
-    }
+    //   } catch (e) {
+    //     return Promise.reject(`${this.name} ${methodName} error: ${e.message}`);
+    //   }
+    // }
     return Promise.resolve(true);
   }
 
-  _lifecycle(lifecycle: string) {
-    const instance = this.instance;
-    const methodName = 'ionView' + lifecycle;
-    if (instance && instance[methodName]) {
-      try {
-        instance[methodName]();
-
-      } catch (e) {
-        console.error(`${this.name} ${methodName} error: ${e.message}`);
-      }
-    }
+  _lifecycle(_lifecycle: string) {
+    // const event = new CustomEvent(`ionView${lifecycle}`, {
+    //   bubbles: false,
+    //   cancelable: false
+    // });
+    // this.element.dispatchEvent(event);
   }
 
 }
 
-export function isViewController(viewCtrl: any): boolean {
+export function isViewController(viewCtrl: any): viewCtrl is ViewController {
   return !!(viewCtrl && (<ViewController>viewCtrl)._didLoad && (<ViewController>viewCtrl)._willUnload);
 }
 

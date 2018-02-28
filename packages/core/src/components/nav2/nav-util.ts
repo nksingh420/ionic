@@ -1,62 +1,37 @@
 import { ViewController, isViewController } from './view-controller';
-import { isArray } from '../../utils/helpers';
 import { NavControllerBase } from './nav';
 import { Transition } from './transition';
 
 
-export function getComponent(nameOrPageOrView: any, params?: any): Promise<ViewController> {
-  // if (typeof nameOrPageOrView === 'function') {
-  //   return Promise.resolve(
-  //     new ViewController(nameOrPageOrView, params)
-  //   );
-  // }
-  return Promise.resolve(
-    new ViewController(nameOrPageOrView, params)
-  );
+export type Page2 = string | HTMLElement | ViewController;
 
-  // if (typeof nameOrPageOrView === 'string') {
-  //   // return linker.getComponentFromName(nameOrPageOrView).then((component) => {
-  //   //   const vc = new ViewController(component, params);
-  //   //   vc.id = nameOrPageOrView;
-  //   //   return vc;
-  //   // });
-  // }
-
-  // return Promise.resolve(null);
+export interface PageMeta {
+  page: Page2;
+  params?: any;
 }
 
-export function convertToView(nameOrPageOrView: any, params: any): Promise<ViewController> {
-  if (nameOrPageOrView) {
-    if (isViewController(nameOrPageOrView)) {
-      // is already a ViewController
-      return Promise.resolve(<ViewController>nameOrPageOrView);
-    }
-
-    return getComponent(nameOrPageOrView, params);
+export function convertToView(page: any, params: any): ViewController {
+  if (!page) {
+    return null;
   }
-
-  return Promise.resolve(null);
+  if (isViewController(page)) {
+    return page;
+  }
+  return new ViewController(page, params);
 }
 
-export function convertToViews(pages: any[]): Promise<ViewController[]> {
-  const views: Promise<ViewController>[] = [];
-  if (isArray(pages)) {
-    for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
-      if (page) {
-        if (isViewController(page)) {
-          views.push(page);
-
-        } else if (page.page) {
-          views.push(convertToView(page.page, page.params));
-
-        } else {
-          views.push(convertToView(page, null));
-        }
+export function convertToViews(pages: any[]): ViewController[] {
+  return pages
+    .map(page => {
+      if (isViewController(page)) {
+        return page;
       }
-    }
-  }
-  return Promise.all(views);
+      if ('page' in page) {
+        return convertToView(page.page, page.params);
+      }
+      return convertToView(page, undefined);
+    })
+    .filter(v => v !== null);
 }
 
 let portalZindex = 9999;

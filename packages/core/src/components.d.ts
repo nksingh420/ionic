@@ -42,7 +42,6 @@ import {
   GestureDetail,
 } from './components/gesture/gesture';
 import {
-  App,
   FrameworkDelegate as FrameworkDelegate2,
   RouterDelegate,
 } from '.';
@@ -53,9 +52,6 @@ import {
 import {
   SelectPopoverOption,
 } from './components/select-popover/select-popover';
-import {
-  FrameworkDelegate as FrameworkDelegate2,
-} from '.';
 import {
   DomRenderFn,
   HeaderFn,

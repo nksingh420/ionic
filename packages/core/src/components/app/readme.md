@@ -46,9 +46,6 @@ actions has the highest priority and should be called.
 #### setEnabled()
 
 
-#### setScrolling()
-
-
 #### unregisterRootNav()
 
 

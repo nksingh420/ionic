@@ -30,7 +30,7 @@ export default function iosTransitionAnimation(Animation: Animation, _: HTMLElem
   rootTransition.beforeRemoveClass('hide-page');
 
   if (leavingEl) {
-    const navEl = leavingEl.closest('ion-nav');
+    const navEl = closest(leavingEl, 'ion-nav');
     if (navEl) {
       const navDecor = new Animation();
       navDecor.addElement(navEl).duringAddClass('show-decor');
@@ -210,4 +210,11 @@ export default function iosTransitionAnimation(Animation: Animation, _: HTMLElem
   }
   // Return the rootTransition promise
   return Promise.resolve(rootTransition);
+}
+
+function closest(el: any, query: string) {
+  if (el.closest) {
+    return el.closest(query);
+  }
+  return null;
 }

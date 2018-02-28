@@ -39,27 +39,25 @@ import iosTransitionAnimation from './animations/ios.transition';
 // import mdTransitionAnimation from './animations/md.transition';
 
 const TrnsCtrl = new TransitionController();
-/**
- * @hidden
- * This class is for internal use only. It is not exported publicly.
- */
+
 @Component({
-  tag: 'ion-nav'
+  tag: 'ion-nav',
+  styleUrl: 'nav.scss'
 })
 export class NavControllerBase {
 
-  _children: NavControllerBase[];
+  _children: NavControllerBase[] = [];
   _ids = -1;
   _init = false;
-  _isPortal: boolean;
+  _isPortal = false;
   _queue: TransitionInstruction[] = [];
-  _sbEnabled: boolean;
+  _sbEnabled = false;
   _sbTrns: Transition;
   _trnsId: number = null;
   _trnsTm = false;
   _views: ViewController[] = [];
   _zIndexOffset = 0;
-  _destroyed: boolean;
+  _destroyed = false;
   _errHandler: any = null;
 
   @Event() viewDidLoad: EventEmitter;
@@ -91,9 +89,7 @@ export class NavControllerBase {
 
   componentDidLoad() {
     this._sbEnabled = this.config.getBoolean('swipeBackEnabled');
-    this._children = [];
     this.id = 'n' + (++ctrlIds);
-    this._destroyed = false;
 
     // TODO, not here
     if (this.root) {
@@ -196,7 +192,7 @@ export class NavControllerBase {
   }
 
   @Method()
-  setPages(viewControllers: any[], opts?: NavOptions, done?: TransitionDoneFn): Promise<any> {
+  setPages(pages: any[], opts?: NavOptions, done?: TransitionDoneFn): Promise<any> {
     if (isBlank(opts)) {
       opts = {};
     }
@@ -206,7 +202,7 @@ export class NavControllerBase {
     }
     return this._queueTrns({
       insertStart: 0,
-      insertViews: viewControllers,
+      insertViews: pages,
       removeStart: 0,
       removeCount: -1,
       opts: opts
@@ -315,8 +311,8 @@ export class NavControllerBase {
     let leavingView: ViewController;
 
     this._startTI(ti)
-      .then(() => this._loadLazyLoading(ti))
       .then(() => {
+        this._prepareViewControllers(ti);
         leavingView = this.getActive();
         enteringView = this._getEnteringView(ti, leavingView);
 
@@ -385,30 +381,27 @@ export class NavControllerBase {
     return Promise.resolve();
   }
 
-  _loadLazyLoading(ti: TransitionInstruction): Promise<void> {
+  _prepareViewControllers(ti: TransitionInstruction) {
     const insertViews = ti.insertViews;
     if (insertViews) {
       assert(insertViews.length > 0, 'length can not be zero');
-      return convertToViews(insertViews).then((viewControllers) => {
-        assert(insertViews.length === viewControllers.length, 'lengths does not match');
+      const viewControllers = convertToViews(insertViews);
 
-        viewControllers = viewControllers.filter(v => v !== null);
-        if (viewControllers.length === 0) {
-          throw new Error('invalid views to insert');
+      if (viewControllers.length === 0) {
+        throw new Error('invalid views to insert');
+      }
+      // Check all the inserted view are correct
+      for (let i = 0; i < viewControllers.length; i++) {
+        const view = viewControllers[i];
+        const nav = view._nav;
+        if (nav && nav !== this) {
+          throw new Error('inserted view was already inserted');
         }
-        // Check all the inserted view are correct
-        for (let i = 0; i < viewControllers.length; i++) {
-          const view = viewControllers[i];
-          const nav = view._nav;
-          if (nav && nav !== this) {
-            throw new Error('inserted view was already inserted');
-          }
-          if (view._state === STATE_DESTROYED) {
-            throw new Error('inserted view was already destroyed');
-          }
+        if (view._state === STATE_DESTROYED) {
+          throw new Error('inserted view was already destroyed');
         }
-        ti.insertViews = viewControllers;
-      });
+      }
+      ti.insertViews = viewControllers;
     }
     return Promise.resolve();
   }
@@ -425,10 +418,8 @@ export class NavControllerBase {
     if (isPresent(removeStart)) {
       const views = this._views;
       const removeEnd = removeStart + ti.removeCount;
-      let i: number;
-      let view: ViewController;
-      for (i = views.length - 1; i >= 0; i--) {
-        view = views[i];
+      for (let i = views.length - 1; i >= 0; i--) {
+        const view = views[i];
         if ((i < removeStart || i >= removeEnd) && view !== leavingView) {
           return view;
         }
@@ -546,27 +537,28 @@ export class NavControllerBase {
     // // create ComponentRef and set it to the entering view
     // enteringView.init(componentFactory.create(childInjector, []));
     // enteringView.init()
-    enteringView.element = document.createElement(enteringView.component);
+    // enteringView.element = document.createElement(enteringView.component);
     enteringView._state = STATE_INITIALIZED;
+    enteringView.init();
     this._preLoad(enteringView);
   }
 
-  _viewAttachToDOM(view: ViewController, pageElement: HTMLElement) {
+  _viewAttachToDOM(view: ViewController) {
     assert(view._state === STATE_INITIALIZED, 'view state must be INITIALIZED');
-    assert(pageElement, 'componentRef can not be null');
 
     // fire willLoad before change detection runs
     this._willLoad(view);
 
     // render the component ref instance to the DOM
     // ******** DOM WRITE ****************
-    this.el.appendChild(pageElement);
+    this.el.appendChild(view.element);
     view._state = STATE_ATTACHED;
 
+    // TODO: fails in test
     if (view._cssClass) {
       // the ElementRef of the actual ion-page created
       // ******** DOM WRITE ****************+
-      pageElement.classList.add(view._cssClass);
+      view.element.classList.add(view._cssClass);
     }
 
     // componentRef.changeDetectorRef.detectChanges();
@@ -641,7 +633,7 @@ export class NavControllerBase {
       // this would also render new child navs/views
       // which may have their very own async canEnter/Leave tests
       // ******** DOM WRITE ****************
-      this._viewAttachToDOM(enteringView, enteringView.element);
+      this._viewAttachToDOM(enteringView);
     }
 
 
@@ -681,7 +673,7 @@ export class NavControllerBase {
     // or if it is a portal (modal, actionsheet, etc.)
     const isFirstPage = !this._init && this._views.length === 1;
     const shouldNotAnimate = isFirstPage && !this._isPortal;
-    const canNotAnimate = this.config.get('animate') === false;
+    const canNotAnimate = !this.config.getBoolean('animate', true);
     if (shouldNotAnimate || canNotAnimate) {
       opts.animate = false;
     }
@@ -712,7 +704,7 @@ export class NavControllerBase {
         // TODO
         // this.app.setEnabled(false, duration + ACTIVE_TRANSITION_OFFSET, opts.minClickBlockDuration);
       } else {
-        console.debug('transition is running but app has not been disabled');
+        // console.debug('transition is running but app has not been disabled');
       }
 
       // cool, let's do this, start the transition
@@ -1012,7 +1004,7 @@ export class NavControllerBase {
       this.parent.unregisterChildNav(this);
     } else if (this.app) {
       // TODO: event
-      this.app.unregisterRootNav(this);
+      // this.app.unregisterRootNav(this);
     }
 
     this._destroyed = true;
@@ -1075,12 +1067,13 @@ export class NavControllerBase {
   }
 
   canSwipeBack(): boolean {
-    return (this._sbEnabled &&
-            !this._isPortal &&
-            !this._children.length &&
-            !this.isTransitioning() &&
-            this.app.isEnabled() &&
-            this.canGoBack());
+    return (
+      this._sbEnabled &&
+      !this._isPortal &&
+      !this._children.length &&
+      !this.isTransitioning() &&
+      this.canGoBack()
+    );
   }
 
   canGoBack(): boolean {
