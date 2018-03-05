@@ -257,15 +257,18 @@ export class ViewController {
    */
   _domShow(shouldShow: boolean) {
     // using hidden element attribute to display:none and not render views
-    // _hidden value of '' means the hidden attribute will be added
-    // _hidden value of null means the hidden attribute will be removed
     // doing checks to make sure we only update the DOM when actually needed
     // if it should render, then the hidden attribute should not be on the element
     if (this.element && shouldShow === this._isHidden) {
       this._isHidden = !shouldShow;
-      const value = (shouldShow ? null : '');
+
       // ******** DOM WRITE ****************
-      this.element.setAttribute('hidden', value);
+      if (shouldShow) {
+        this.element.removeAttribute('hidden');
+      } else {
+        this.element.setAttribute('hidden', '');
+      }
+
     }
   }
 
@@ -425,16 +428,10 @@ export class ViewController {
 
     const element = this.element;
     if (element) {
-      // ensure the element is cleaned up for when the view pool reuses this element
-      // ******** DOM WRITE ****************
-      // TODO
-      // const cmpEle = this._cmp.location.nativeElement as HTMLElement;
-      element.setAttribute('class', null);
-      element.setAttribute('style', null);
-
       // completely destroy this component. boom.
       // TODO
       // this._cmp.destroy();
+      element.remove();
     }
 
     this._nav = this._cntDir = this._leavingOpts = this._onDidDismiss = this._onWillDismiss = null;
